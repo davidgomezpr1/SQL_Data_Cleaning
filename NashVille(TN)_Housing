@@ -1,169 +1,165 @@
-/*
-Cleaning Data in SQL Queries
-*/
+-- Let's first have a look into the data.
+
+SELECT TOP (100) *
+FROM Housing_Analysis_Project..Nashville_housing;
 
 
---------------------------------------------------------------------------------------------------------------------------
+-- Let's start the cleaning of the data by standardizing the date format from the current datetime format.
 
--- Standardize Date Format
-
-Select SaleDateConverted, CONVERT(date, SaleDate)
-from PortfolioProject..NashvilleHousing;
-
-ALTER TABLE NashvilleHousing
+ALTER TABLE Nashville_housing
 ADD SaleDateConverted Date;
 
-UPDATE NashvilleHousing
+UPDATE Nashville_housing
 SET SaleDateConverted = CONVERT(date, SaleDate);
 
- --------------------------------------------------------------------------------------------------------------------------
+SELECT SaleDateConverted, CONVERT(date, SaleDate)
+FROM Housing_Analysis_Project..Nashville_housing;
 
--- Populate Property Address data
--- Realized that for the same parcel ID, property addresses were identical. Therefore, I populated the PropertyAddress column 
--- by using the values where the null field had the same parcel ID as the populated field.  
+ALTER TABLE Nashville_housing
+DROP COLUMN SaleDate;
+
+/* I realized that the there was missing data in the PropertyAddress field. I then learned that, for the same parcel ID, property addresses were identical. 
+Therefore, I populated the PropertyAddress column by using the values where the null field had the same parcel ID as the PropertyAddress populated field*/
 
 
--- First, we join the NashvilleHousing table to itself (self-join)
+-- First, we join the Nashville-housing table to itself (self-join)
 
-select a.ParcelID,a.PropertyAddress,b.ParcelID, b.PropertyAddress, ISNULL(a.PropertyAddress, b.PropertyAddress)
-from PortfolioProject..NashvilleHousing as a
-join PortfolioProject..NashvilleHousing as b
-	on a.ParcelID=b.ParcelID
-	and a.[UniqueID ] <> b.[UniqueID ] 
-where a.PropertyAddress is null;
+SELECT a.ParcelID,a.PropertyAddress,b.ParcelID, b.PropertyAddress, ISNULL(a.PropertyAddress, b.PropertyAddress) -- ISNULL does what I want here as it returns the value of b.PropertyAddress, if and only if a.PropertyAddress is null.
+FROM Housing_Analysis_Project..Nashville_housing AS a
+JOIN Housing_Analysis_Project..Nashville_housing AS b
+	ON a.ParcelID=b.ParcelID
+	AND a.[UniqueID ] <> b.[UniqueID ] 
+WHERE a.PropertyAddress IS NULL;
 
---Let's update the Table with the new PropertyAddress values
+--There are 35 null values that I will fill out with the new PropertyAddress values.
 
 UPDATE a
 SET PropertyAddress = ISNULL(a.PropertyAddress, b.PropertyAddress)
-from PortfolioProject..NashvilleHousing as a
-join PortfolioProject..NashvilleHousing as b
-	on a.ParcelID=b.ParcelID
-	and a.[UniqueID ] <> b.[UniqueID ] 
-where a.PropertyAddress is null;
+FROM Housing_Analysis_Project..Nashville_housing AS a
+JOIN Housing_Analysis_Project..Nashville_housing AS b
+	ON a.ParcelID=b.ParcelID
+	AND a.[UniqueID ] <> b.[UniqueID ] 
+WHERE a.PropertyAddress IS NULL;
 
---Let's checked if it worked. 0 values returned, which indicates that it did
+--Let's check if it worked. No values returned, which indicates that it did!
 
-select a.ParcelID,a.PropertyAddress,b.ParcelID, b.PropertyAddress, ISNULL(a.PropertyAddress, b.PropertyAddress)
-from PortfolioProject..NashvilleHousing as a
-join PortfolioProject..NashvilleHousing as b
-	on a.ParcelID=b.ParcelID
-	and a.[UniqueID ] <> b.[UniqueID ] 
-where a.PropertyAddress is null;
+SELECT a.ParcelID,a.PropertyAddress,b.ParcelID, b.PropertyAddress, ISNULL(a.PropertyAddress, b.PropertyAddress)
+FROM Housing_Analysis_Project..Nashville_housing AS a
+JOIN Housing_Analysis_Project..Nashville_housing AS b
+	ON a.ParcelID=b.ParcelID
+	AND a.[UniqueID ] <> b.[UniqueID ] 
+WHERE a.PropertyAddress IS NULL;
 
---------------------------------------------------------------------------------------------------------------------------
-
--- Breaking out Address into Individual Columns (Address, City, State)
-
+SELECT TOP(100) *
+from Nashville_housing
 
 
-select SUBSTRING(PropertyAddress, 1, CHARINDEX(',', PropertyAddress)-1) as Address,
-SUBSTRING(PropertyAddress, CHARINDEX(',', PropertyAddress)+1, LEN(PropertyAddress)) as Address
-from PortfolioProject..NashvilleHousing;
+-- Let's now split the Address into individual columns for Address and City.
 
 
--- Let's add the split values into the Table
+
+SELECT SUBSTRING(PropertyAddress, 1, CHARINDEX(',', PropertyAddress)-1) AS Address,
+SUBSTRING(PropertyAddress, CHARINDEX(',', PropertyAddress)+1, LEN(PropertyAddress)) AS City
+FROM Housing_Analysis_Project..Nashville_housing;
 
 
-ALTER TABLE NashvilleHousing
+-- Let's add the split values into the table and drop the duplicate column.
+
+
+ALTER TABLE Nashville_housing
 ADD PropertySplitAddress nvarchar(255);
 
-UPDATE NashvilleHousing
+UPDATE Nashville_housing
 SET PropertySplitAddress = SUBSTRING(PropertyAddress, 1, CHARINDEX(',', PropertyAddress)-1);
 
-ALTER TABLE NashvilleHousing
+ALTER TABLE Nashville_housing
 ADD PropertySplitCity nvarchar(255);
 
-UPDATE NashvilleHousing
+UPDATE Nashville_housing
 SET PropertySplitCity = SUBSTRING(PropertyAddress, CHARINDEX(',', PropertyAddress)+1, LEN(PropertyAddress));
 
 
+ALTER TABLE Nashville_housing
+DROP COLUMN PropertyAddress;
 
--- The same occurs with the Owner Address. It need split into Address, City and State. I will use the PARSENAME function this time. 
+SELECT TOP(5) *
+FROM Nashville_housing;
+
+-- Likewise, the same occurs with the OwnerAddress field. It needs split into Address, City, and State. Alternatively, I will use the PARSENAME function this time. 
 
 
-Select
-PARSENAME(REPLACE(OwnerAddress, ',','.'),3) as Address,
-PARSENAME(REPLACE(OwnerAddress, ',','.'),2) as City,
-PARSENAME(REPLACE(OwnerAddress, ',','.'),1) as State
-from PortfolioProject..NashvilleHousing;
+SELECT
+PARSENAME(REPLACE(OwnerAddress, ',','.'),3) AS Address, --PARSENAME needs a dot delimited string, for which I will use the REPLACE function to replace commas with dots.
+PARSENAME(REPLACE(OwnerAddress, ',','.'),2) AS City,
+PARSENAME(REPLACE(OwnerAddress, ',','.'),1) AS State
+FROM Housing_Analysis_Project..Nashville_housing;
 
 -- Let's add the split values into the Table
 
 
-ALTER TABLE NashvilleHousing
+ALTER TABLE Nashville_housing
 ADD OwnerSplitAddress nvarchar(255);
 
-UPDATE NashvilleHousing
+UPDATE Nashville_housing
 SET OwnerSplitAddress = PARSENAME(REPLACE(OwnerAddress, ',','.'),3);
 
-ALTER TABLE NashvilleHousing
+ALTER TABLE Nashville_housing
 ADD OwnerSplitCity nvarchar(255);
 
-UPDATE NashvilleHousing
+UPDATE Nashville_housing
 SET OwnerSplitCity = PARSENAME(REPLACE(OwnerAddress, ',','.'),2);
 
-ALTER TABLE NashvilleHousing
+ALTER TABLE Nashville_housing
 ADD OwnerSplitState nvarchar(255);
 
-UPDATE NashvilleHousing
+UPDATE Nashville_housing
 SET OwnerSplitState = PARSENAME(REPLACE(OwnerAddress, ',','.'),1);
 
+ALTER TABLE Nashville_housing
+DROP COLUMN OwnerAddress;
+
+SELECT TOP(5) *
+FROM Nashville_housing;
+
+/*In the "Sold as Vacant" field, there are 4 distinct values (Y, N,Yes and No), being the last two the most frequent (verified with a count). Let's change Y and N to the more frequent Yes and No */
 
 
---------------------------------------------------------------------------------------------------------------------------
+SELECT DISTINCT SoldAsVacant, COUNT(SoldAsVacant)
+From Housing_Analysis_Project..Nashville_housing
+GROUP BY SoldAsVacant
+ORDER BY 2 DESC;
 
 
--- In the "Sold as Vacant" field, there are 4 distinct values (Y, N,Yes and No), being the last two the most frequent
--- (verified with a count). Let's change Y and N to Yes and No.
-
-
-Select Distinct SoldAsVacant, count(SoldAsVacant)
-From PortfolioProject..NashvilleHousing
-Group by SoldAsVacant
-order by 2;
-
-
-UPDATE NashvilleHousing
-SET SoldAsVacant = CASE WHEN SoldAsVacant = 'Y' then 'Yes'
-		 When SoldAsVacant = 'N' then 'No'
-		 Else SoldAsVacant
+UPDATE Nashville_housing
+SET SoldAsVacant = CASE WHEN SoldAsVacant = 'Y' THEN 'Yes'
+		 WHEN SoldAsVacant = 'N' THEN 'No'
+		 ELSE SoldAsVacant
 		 END  
 
+-- Verifying that SoldAsVacant only has two possible values, Yes or No.
 
------------------------------------------------------------------------------------------------------------------------------------------------------------
+SELECT DISTINCT SoldAsVacant
+FROM Nashville_housing;
 
--- Remove Duplicates
+-- Let's now remove duplicates, using a CTE and the ROW_NUMBER function to identify the duplicated values.
 
-with RowNumCTE AS(
-Select *, 
-	ROW_NUMBER() OVER (PARTITION BY ParcelID, PropertyAddress, SalePrice, SaleDate, LegalReference ORDER BY UniqueID) as row_num
-From PortfolioProject..NashvilleHousing		
+WITH RowNumCTE AS(
+SELECT *, 
+	ROW_NUMBER() OVER (PARTITION BY ParcelID, PropertySplitAddress, SalePrice, SaleDateConverted, LegalReference ORDER BY UniqueID) AS row_num  
+	--The PARTITION BY statement includes all the fields I identified as unique, thus meaning that rows with the same values must be duplicates.
+FROM Housing_Analysis_Project..Nashville_housing		
 )
 
 
-Select *
-From RowNumCTE
-where row_num > 1
-Order by PropertyAddress;
+SELECT *
+FROM RowNumCTE
+WHERE row_num > 1
+ORDER BY PropertySplitAddress;
 
---Found 104 duplicates (row_num > 1)- let's get rid of them.
+--Found 104 duplicates whererow_num > 1)- let's get rid of them.
 
 DELETE 
-From RowNumCTE
-where row_num > 1;
+FROM RowNumCTE
+WHERE row_num > 1;
 
-
----------------------------------------------------------------------------------------------------------
-
--- Delete Unused Columns (TaxDistrict, OwnerAddress, PropertyAddress and SaleDate) to leave the more usable, friendlier converted columns.
-
-
-Select *
-From PortfolioProject..NashvilleHousing;
-
-ALTER TABLE PortfolioProject..NashvilleHousing
-DROP COLUMN OwnerAddress, TaxDistrict, PropertyAddress
-
-ALTER TABLE PortfolioProject..NashvilleHousing
-DROP COLUMN SaleDate;
+--The Table has now been cleaned and is ready for any future further analysis.
