@@ -17,5 +17,5 @@ A real state investment firm hired me to clean the data for the Nashville housin
 
 ## Conclusions
 
-- The data was succesfully cleaned and worked in SQL.
+- The data was succesfully cleaned in SQL.
 - The resulting dataset was utilized by the client to influence their business decisions.
