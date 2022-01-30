@@ -1,4 +1,4 @@
-# [Project 8 : SQL Data Cleaning](https://github.com/davidgomezpr1/SQL_Data_Cleaning)
+# [Data Cleaning in SQL](https://github.com/davidgomezpr1/SQL_Data_Cleaning)
 ![](https://images.unsplash.com/photo-1513880989635-6eb491ce7f5b?ixlib=rb-1.2.1&ixid=MnwxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8&auto=format&fit=crop&w=1074&q=80)
 
 ## Business Request
